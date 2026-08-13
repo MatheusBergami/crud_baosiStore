@@ -1,0 +1,50 @@
+# ========================================
+# SISTEMA / IDE
+# ========================================
+
+.idea/
+.vscode/
+*.iml
+
+.DS_Store
+Thumbs.db
+
+
+# ========================================
+# BACKEND - JAVA / SPRING BOOT
+# ========================================
+
+backend/target/
+backend/.mvn/
+
+*.class
+
+# Logs
+*.log
+
+# Spring Boot
+backend/application-local.properties
+backend/application-local.yml
+
+
+# ========================================
+# FRONTEND - NODE / REACT / VITE
+# ========================================
+
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Vite
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+
+
+# ========================================
+# ENVIRONMENT VARIABLES
+# ========================================
+
+.env
+.env.local
+.env.*.local
