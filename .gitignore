@@ -1,0 +1,29 @@
+# =========================
+# BACKEND - SPRING BOOT
+# =========================
+
+baozi-store/target/
+baozi-store/src/main/resources/application-local.properties
+
+# =========================
+# FRONTEND - REACT / VITE
+# =========================
+
+baozi-front/node_modules/
+baozi-front/dist/
+baozi-front/.vite/
+
+# =========================
+# IDE
+# =========================
+
+.idea/
+.vscode/
+*.iml
+
+# =========================
+# SISTEMA
+# =========================
+
+.DS_Store
+Thumbs.db
