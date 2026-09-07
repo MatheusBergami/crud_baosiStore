@@ -228,55 +228,151 @@ application-local.properties
 
 deve permanecer apenas no ambiente local.
 
-🐳 Como executar com Docker
+## 🐳 Execução com Docker
 
-Pré-requisitos:
+O arquivo `compose.yaml` inicia a aplicação completa em três contêineres:
 
-- Docker Desktop em execução;
-- portas `5173`, `8080` e `3307` disponíveis. Se alguma delas já estiver em uso, altere somente a porta correspondente no arquivo `.env`.
+- `database`: MySQL 8.4, publicado em `localhost:3307` e acessível internamente como `database:3306`;
+- `backend`: API Spring Boot executada com Java 21 e o perfil `docker`, publicada em `localhost:8080`;
+- `frontend`: aplicação React compilada com Node e servida pelo Nginx em `localhost:5173`.
 
-Na raiz do projeto, crie o arquivo local de variáveis:
+O frontend envia as chamadas iniciadas por `/api` ao Nginx. O Nginx encaminha essas chamadas ao backend pela rede interna do Docker, sem depender de `localhost` entre os contêineres.
+
+### Arquivos da implementação
+
+- `compose.yaml`: conecta MySQL, backend e frontend;
+- `.env.example`: modelo das variáveis necessárias;
+- `baozi-store/Dockerfile`: compila o backend e cria a imagem final com Java 21;
+- `baozi-store/src/main/resources/application-docker.properties`: configura banco e JWT no perfil Docker;
+- `baozi-front/Dockerfile`: compila o React e cria a imagem final com Nginx;
+- `baozi-front/nginx.conf`: serve o frontend, suporta as rotas do React e encaminha `/api` ao backend;
+- `.dockerignore`: evita enviar dependências, builds locais e arquivos sensíveis para as imagens.
+
+### Pré-requisitos
+
+- Docker Desktop instalado e em execução;
+- portas `5173`, `8080` e `3307` disponíveis.
+
+Se uma porta estiver ocupada, altere apenas sua porta externa no `.env`. A porta interna do MySQL deve continuar sendo `3306`.
+
+### Configuração do `.env`
+
+Na raiz do projeto, crie o arquivo local a partir do modelo:
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-Revise as senhas e a chave JWT no `.env`. Esse arquivo não é enviado ao Git.
+Revise no `.env`:
 
-Construa as imagens e inicie toda a aplicação:
+- `MYSQL_DATABASE`: nome do banco;
+- `MYSQL_USER`: usuário usado pelo backend;
+- `MYSQL_PASSWORD`: senha do usuário da aplicação;
+- `MYSQL_ROOT_PASSWORD`: senha administrativa do MySQL;
+- `MYSQL_PORT`: porta do MySQL no Windows, configurada como `3307` para não conflitar com uma instalação local na porta `3306`;
+- `JWT_SECRET`: chave de assinatura dos tokens, com pelo menos 32 caracteres;
+- `BACKEND_PORT` e `FRONTEND_PORT`: portas publicadas pela aplicação.
 
-```powershell
-docker compose up -d --build
-```
+O `.env` contém credenciais e está ignorado pelo Git. Somente o `.env.example` deve ser versionado. Troque as senhas de exemplo antes de usar a aplicação fora do ambiente local.
 
-Confira o estado dos contêineres:
+### Primeira inicialização
 
-```powershell
-docker compose ps
-```
-
-Acesse o frontend em `http://localhost:5173`. O backend fica disponível em `http://localhost:8080`.
-
-Para acompanhar os logs:
+Construa as imagens e inicie os serviços:
 
 ```powershell
-docker compose logs -f
+docker compose --env-file .env up -d --build
 ```
 
-Para pausar e retomar rapidamente:
+Na primeira execução, o Docker baixa as imagens-base, compila o backend e o frontend e cria o volume persistente do MySQL. Esse processo pode levar alguns minutos.
+
+Confira o estado:
 
 ```powershell
-docker compose stop
-docker compose start
+docker compose --env-file .env ps
 ```
 
-Para encerrar os contêineres preservando o banco:
+O serviço `database` deve aparecer como `healthy`, e `backend` e `frontend` devem aparecer como `Up`.
+
+Depois, acesse:
+
+- frontend: `http://localhost:5173`;
+- backend: `http://localhost:8080`.
+
+### Inicializações seguintes
+
+Se o código e os Dockerfiles não mudaram, não é necessário fazer o build novamente:
 
 ```powershell
-docker compose down
+docker compose --env-file .env up -d
 ```
 
-O MySQL usa o volume nomeado `mysql_data`. Por isso, `docker compose down` preserva os dados. Use `docker compose down -v` somente quando quiser apagar definitivamente o banco criado pelo Compose.
+Use `--build` novamente quando alterar código-fonte, dependências, Dockerfiles ou arquivos usados durante a construção das imagens:
+
+```powershell
+docker compose --env-file .env up -d --build
+```
+
+### Logs e diagnóstico
+
+Para acompanhar todos os serviços:
+
+```powershell
+docker compose --env-file .env logs -f
+```
+
+Para conferir somente o backend:
+
+```powershell
+docker compose --env-file .env logs --tail 100 backend
+```
+
+Se o frontend abrir, mas o login retornar erro `502`, confira se o backend está reiniciando:
+
+```powershell
+docker compose --env-file .env ps
+```
+
+#### Erro de senha do MySQL
+
+O MySQL aplica `MYSQL_USER`, `MYSQL_PASSWORD` e `MYSQL_ROOT_PASSWORD` somente quando o volume é criado pela primeira vez. Alterar essas variáveis no `.env` depois disso não modifica automaticamente os usuários que já existem no banco.
+
+O sintoma mais comum no backend é:
+
+```text
+Access denied for user 'baozi'
+```
+
+Para preservar os dados, restaure no `.env` as credenciais usadas quando o volume foi criado e recrie apenas os contêineres:
+
+```powershell
+docker compose --env-file .env up -d --force-recreate
+```
+
+Se não houver dados importantes e você quiser inicializar um banco novo com as credenciais atuais do `.env`, remova o volume e suba os serviços novamente:
+
+```powershell
+docker compose --env-file .env down -v
+docker compose --env-file .env up -d
+```
+
+**Atenção:** `down -v` apaga definitivamente todos os dados do MySQL armazenados pelo Docker.
+
+### Pausar, retomar e encerrar
+
+Para pausar e retomar sem remover os contêineres:
+
+```powershell
+docker compose --env-file .env stop
+docker compose --env-file .env start
+```
+
+Para remover os contêineres e preservar o banco:
+
+```powershell
+docker compose --env-file .env down
+```
+
+O banco permanece no volume nomeado `mysql_data`. Não acrescente `-v` ao comando quando quiser preservar os dados.
 
 ⚙️ Como executar o backend
 
