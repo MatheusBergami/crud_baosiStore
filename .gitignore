@@ -27,3 +27,14 @@ baozi-front/.vite/
 
 .DS_Store
 Thumbs.db
+
+# =========================
+# VARIAVEIS DE AMBIENTE
+# =========================
+
+.env
+.env.*
+!.env.example
+
+# Backup recuperavel do antigo repositorio Git aninhado
+.git-backup/

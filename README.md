@@ -218,7 +218,7 @@ Esse arquivo está incluído no .gitignore.
 
 Exemplo:
 
-spring.datasource.url=jdbc:postgresql://localhost:5432/baozi
+spring.datasource.url=jdbc:mysql://localhost:3306/baozi_store
 spring.datasource.username=SEU_USUARIO
 spring.datasource.password=SUA_SENHA
 
@@ -227,6 +227,56 @@ O arquivo:
 application-local.properties
 
 deve permanecer apenas no ambiente local.
+
+🐳 Como executar com Docker
+
+Pré-requisitos:
+
+- Docker Desktop em execução;
+- portas `5173`, `8080` e `3307` disponíveis. Se alguma delas já estiver em uso, altere somente a porta correspondente no arquivo `.env`.
+
+Na raiz do projeto, crie o arquivo local de variáveis:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Revise as senhas e a chave JWT no `.env`. Esse arquivo não é enviado ao Git.
+
+Construa as imagens e inicie toda a aplicação:
+
+```powershell
+docker compose up -d --build
+```
+
+Confira o estado dos contêineres:
+
+```powershell
+docker compose ps
+```
+
+Acesse o frontend em `http://localhost:5173`. O backend fica disponível em `http://localhost:8080`.
+
+Para acompanhar os logs:
+
+```powershell
+docker compose logs -f
+```
+
+Para pausar e retomar rapidamente:
+
+```powershell
+docker compose stop
+docker compose start
+```
+
+Para encerrar os contêineres preservando o banco:
+
+```powershell
+docker compose down
+```
+
+O MySQL usa o volume nomeado `mysql_data`. Por isso, `docker compose down` preserva os dados. Use `docker compose down -v` somente quando quiser apagar definitivamente o banco criado pelo Compose.
 
 ⚙️ Como executar o backend
 
